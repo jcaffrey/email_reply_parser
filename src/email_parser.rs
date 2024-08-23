@@ -1,4 +1,6 @@
 use regex::Regex;
+use fancy_regex::{Regex as FancyRegex};
+
 
 pub struct EmailReplyParser;
 
@@ -31,25 +33,25 @@ impl EmailMessage {
 
     pub fn read(mut self) -> Self {
         // Manually handle multi-quote headers
-        self.text = self.fix_multi_quote_headers();
+        // self.text = self.fix_multi_quote_headers();
         // complex regex not supported in rust regex crate
-        // let multi_quote_hdr_regex_multiline = Regex::new(
-        //     r"(?s)(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)"
-        // ).unwrap();
-        // if let Some(captures) = multi_quote_hdr_regex_multiline.captures(&self.text) {
-        //     if let Some(matched) = captures.get(0) {
-        //         self.text = multi_quote_hdr_regex_multiline
-        //             .replace(&self.text, matched.as_str().replace('\n', ""))
-        //             .into_owned();
-        //     }
-        // }
+        let multi_quote_hdr_regex_multiline = FancyRegex::new(
+            r"(?s)(?!On.*On\s.+?wrote:)(On\s(.+?)wrote:)"
+        ).unwrap();
+        if let Some(captures) = multi_quote_hdr_regex_multiline.captures(&self.text).ok() {
+            if let Some(matched) = captures.as_ref().and_then(|c| c.get(0)) {
+                self.text = multi_quote_hdr_regex_multiline
+                    .replace(&self.text, matched.as_str().replace('\n', ""))
+                    .into_owned();
+            }
+        }
 
         // Manually fix Outlook-style replies where the reply is above a signature boundary line
-        self.text = self.fix_outlook_replies();
+        // self.text = self.fix_outlook_replies();
         // complex regex not supported in rust regex crate
         // Fix any outlook style replies, with the reply immediately above the signature boundary line
-        // let outlook_reply_regex = Regex::new(r"([^\n])(?=\n ?[_-]{7,})").unwrap();
-        // self.text = outlook_reply_regex.replace(&self.text, "$1\n").into_owned();
+        let outlook_reply_regex = FancyRegex::new(r"([^\n])(?=\n ?[_-]{7,})").unwrap();
+        self.text = outlook_reply_regex.replace(&self.text, "$1\n").into_owned();
 
         // Collect lines and reverse them
         let lines: Vec<String> = self.text.lines().map(|line| line.to_string()).collect();
@@ -73,47 +75,47 @@ impl EmailMessage {
             .join("\n")
     }
 
-    fn fix_multi_quote_headers(&self) -> String {
-        // This function manually processes the multi-quote headers
-        let quote_header_regex = Regex::new(r"On\s(.+?)wrote:").unwrap();
-        let mut result = self.text.clone();
-        let mut last_pos = 0;
+    // fn fix_multi_quote_headers(&self) -> String {
+    //     // This function manually processes the multi-quote headers
+    //     let quote_header_regex = Regex::new(r"On\s(.+?)wrote:").unwrap();
+    //     let mut result = self.text.clone();
+    //     let mut last_pos = 0;
         
-        while let Some(caps) = quote_header_regex.captures(&result[last_pos..]) {
-            // let start = last_pos + caps.get(0).unwrap().start();
-            let end = last_pos + caps.get(0).unwrap().end();
-            // let quote_header = &result[start..end];
+    //     while let Some(caps) = quote_header_regex.captures(&result[last_pos..]) {
+    //         // let start = last_pos + caps.get(0).unwrap().start();
+    //         let end = last_pos + caps.get(0).unwrap().end();
+    //         // let quote_header = &result[start..end];
 
-            // Check if there's another "On ... wrote:" within the same block
-            if result[end..].contains("On ") {
-                // Remove the newline between the headers
-                result = result[..end].to_string() + " " + &result[end..];
-            }
+    //         // Check if there's another "On ... wrote:" within the same block
+    //         if result[end..].contains("On ") {
+    //             // Remove the newline between the headers
+    //             result = result[..end].to_string() + " " + &result[end..];
+    //         }
             
-            last_pos = end;
-        }
+    //         last_pos = end;
+    //     }
         
-        result
-    }
+    //     result
+    // }
 
-    fn fix_outlook_replies(&self) -> String {
-        let lines: Vec<&str> = self.text.lines().collect();
-        let mut result = Vec::with_capacity(lines.len());
-        let mut i = 0;
+    // fn fix_outlook_replies(&self) -> String {
+    //     let lines: Vec<&str> = self.text.lines().collect();
+    //     let mut result = Vec::with_capacity(lines.len());
+    //     let mut i = 0;
 
-        while i < lines.len() {
-            if i + 1 < lines.len() && (lines[i + 1].trim().starts_with('_') || lines[i + 1].trim().starts_with('-')) {
-                // If the next line is a signature boundary, ensure there's a newline before it
-                result.push(lines[i]);
-                result.push("");  // Add the missing newline
-            } else {
-                result.push(lines[i]);
-            }
-            i += 1;
-        }
+    //     while i < lines.len() {
+    //         if i + 1 < lines.len() && (lines[i + 1].trim().starts_with('_') || lines[i + 1].trim().starts_with('-')) {
+    //             // If the next line is a signature boundary, ensure there's a newline before it
+    //             result.push(lines[i]);
+    //             result.push("");  // Add the missing newline
+    //         } else {
+    //             result.push(lines[i]);
+    //         }
+    //         i += 1;
+    //     }
 
-        result.join("\n")
-    }
+    //     result.join("\n")
+    // }
 
     fn scan_line(&mut self, line: &str) {
         let sig_regex = Regex::new(r"(--|__|-\w)|(^Sent from my (\w+\s*){1,3})").unwrap();
