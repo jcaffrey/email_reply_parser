@@ -1,0 +1,17 @@
+[package]
+name = "email_reply_parser"
+version = "0.1.0"
+edition = "2021"
+
+# The URL of your repository, if you plan to publish this crate
+repository = "https://github.com/yourusername/email_reply_parser"
+
+[dependencies]
+regex = "1"
+
+[lib]
+crate-type = ["lib"]
+
+[documentation]
+# If you want to include a URL for documentation
+documentation = "https://docs.rs/email_reply_parser"
