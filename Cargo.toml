@@ -2,6 +2,9 @@
 name = "email_reply_parser"
 version = "0.1.2"
 edition = "2021"
+description = "A library for parsing the reply out of emails"
+readme = "README.md"
+license = "MIT"
 
 # The URL of your repository, if you plan to publish this crate
 repository = "https://github.com/yourusername/email_reply_parser"
